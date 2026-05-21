@@ -27,22 +27,30 @@ interface GalleryState {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 // Mirrors your original parseFileName logic exactly
-function parseFileName(publicId: string): { category: string; title: string } {
-  // Strip folder prefix if any (e.g. "portfolio/Branding - Title" → "Branding - Title")
+function parseFileName(publicId: string): {
+  category: string;
+  title: string;
+} {
+  // Remove folder path
   const baseName = publicId.split("/").pop() ?? publicId;
 
-  if (baseName.includes(" - ")) {
-    const [category, ...titleParts] = baseName.split(" - ");
+  // Remove extension if present
+  const cleanName = baseName.replace(/\.[^/.]+$/, "");
+
+  // Detect category and title using "-"
+  if (cleanName.includes("-")) {
+    const [category, ...titleParts] = cleanName.split("-");
+
     return {
       category: category.trim(),
-      title: titleParts.join(" - ").trim(),
+      title: titleParts.join("-").trim(),
     };
   }
 
-  // Fallback: mirrors your original — title-cases the name, groups under "Project"
+  // Fallback
   return {
     category: "Project",
-    title: baseName
+    title: cleanName
       .replace(/[-_]/g, " ")
       .replace(/\b\w/g, (char) => char.toUpperCase()),
   };
