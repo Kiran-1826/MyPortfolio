@@ -54,56 +54,65 @@ const ImageKitGallery = () => {
   };
 
   useEffect(() => {
-    // 2. ⚠️ REPLACE these sample strings below with the exact asset filenames
-    // you uploaded into your ImageKit Media Dashboard /portfolio folder.
-    const myFolderImages = [
-      "Photography - Sunset View.jpg",
-      "Web Design - Portfolio Template.png",
-      "Branding - Modern Logo.jpg",
-    ];
+    const fetchImages = async () => {
+      try {
+        const response = await fetch("/api/gallery");
 
-    try {
-      if (myFolderImages.length === 0) {
+        if (!response.ok) {
+          throw new Error("Failed to fetch images");
+        }
+
+        const data = await response.json();
+
+        const processedImages: ImageItem[] = data.map(
+          (image: any, idx: number) => {
+            const nameWithoutExt = image.name.replace(/\.[^/.]+$/, "");
+
+            let category = "Project";
+            let title = nameWithoutExt;
+
+            // Structured format
+            if (nameWithoutExt.includes(" - ")) {
+              const [cat, ...rest] = nameWithoutExt.split(" - ");
+
+              if (cat && rest.length > 0) {
+                category = cat.trim();
+                title = rest.join(" - ").trim();
+              }
+            } else {
+              // Normal format
+              title = nameWithoutExt
+                .replace(/[-_]/g, " ")
+                .replace(/\b\w/g, (char: string) => char.toUpperCase());
+            }
+
+            return {
+              fileId: image.fileId || `img-${idx}`,
+              name: image.name,
+              url: `${image.url}?tr=w-800,h-600,c-maintain,q-85`,
+              category,
+              title,
+            };
+          },
+        );
+
+        setGalleryState({
+          images: processedImages,
+          isLoading: false,
+          error: null,
+        });
+      } catch (err) {
+        console.error(err);
+
         setGalleryState({
           images: [],
           isLoading: false,
-          error: "No images specified in the portfolio configuration.",
+          error: "Failed to load portfolio images.",
         });
-        return;
       }
+    };
 
-      // Map files to verified array structures using CDN optimization rules
-      const processedImages: ImageItem[] = myFolderImages.map(
-        (fileName, idx) => {
-          const { category, title } = parseFileName(fileName);
-
-          // Escape specialized string markers or spacing characters to maintain valid URLs
-          const encodedFileName = encodeURIComponent(fileName);
-
-          return {
-            fileId: `img-${idx}`,
-            name: fileName,
-            // Delivery layer optimized with real-time scaling and maintain-ratio processing constraints
-            url: `${IMAGEKIT_BASE_URL}/${encodedFileName}?tr=w-800,h-600,c-maintain,q-85`,
-            category,
-            title,
-          };
-        },
-      );
-
-      setGalleryState({
-        images: processedImages,
-        isLoading: false,
-        error: null,
-      });
-    } catch (err: any) {
-      console.error("Portfolio processing error:", err);
-      setGalleryState({
-        images: [],
-        isLoading: false,
-        error: "Failed to load portfolio layout assets.",
-      });
-    }
+    fetchImages();
   }, []);
 
   const categories = [

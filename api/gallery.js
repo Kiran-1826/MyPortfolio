@@ -1,10 +1,4 @@
-const express = require("express");
-const cors = require("cors");
-const ImageKit = require("imagekit");
-
-const app = express();
-
-app.use(cors());
+import ImageKit from "imagekit";
 
 const imagekit = new ImageKit({
   publicKey: "public_h1NCM6jp5z7vekDFJzjFN9Zqaow",
@@ -12,7 +6,7 @@ const imagekit = new ImageKit({
   urlEndpoint: "https://ik.imagekit.io/uaog52xykd",
 });
 
-app.get("/api/gallery", async (req, res) => {
+export default async function handler(req, res) {
   try {
     const result = await imagekit.listFiles({
       path: "/portfolio/",
@@ -24,15 +18,12 @@ app.get("/api/gallery", async (req, res) => {
       url: file.url,
     }));
 
-    res.json(formatted);
+    res.status(200).json(formatted);
   } catch (error) {
     console.error(error);
+
     res.status(500).json({
-      error: "Failed to fetch gallery images",
+      error: "Failed to fetch images",
     });
   }
-});
-
-app.listen(5000, () => {
-  console.log("Server running on port 5000");
-});
+}
