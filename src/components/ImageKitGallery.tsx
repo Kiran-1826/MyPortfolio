@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { AlertCircle, Loader2, X } from "lucide-react";
 import { cn } from "../lib/utils";
 
-// 1. Put your actual ImageKit ID endpoint string here
+// 1. Configured with your live active ImageKit distribution endpoint
 const IMAGEKIT_BASE_URL = "https://ik.imagekit.io/uaog52xykd/portfolio";
 
 interface ImageItem {
@@ -30,10 +30,14 @@ const ImageKitGallery = () => {
   const [selectedImage, setSelectedImage] = useState<ImageItem | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>("All");
 
+  // ===== FILE NAME PARSING UTILITY WITH AUTO-FALLBACK =====
   const parseFileName = (
     fileName: string,
   ): { category: string; title: string } => {
+    // Strip the extension format (e.g. ".jpg", ".png") cleanly from the trailing edge
     const nameWithoutExt = fileName.replace(/\.[^/.]+$/, "");
+
+    // Check if the asset matches your clean structured "Category - Title" template
     if (nameWithoutExt.includes(" - ")) {
       const [category, ...titleParts] = nameWithoutExt.split(" - ");
       return {
@@ -41,15 +45,17 @@ const ImageKitGallery = () => {
         title: titleParts.join(" - ").trim(),
       };
     }
+
+    // FALLBACK: Displays the raw filename as the title if unstructured, grouping it under "Project"
     return {
-      category: "Gallery",
+      category: "Project",
       title: nameWithoutExt.trim(),
     };
   };
 
   useEffect(() => {
-    // 2. Add the exact filenames of the images inside your ImageKit /portfolio folder here.
-    // Ensure they match your naming convention: "Category - Title.jpg"
+    // 2. ⚠️ REPLACE these sample strings below with the exact asset filenames
+    // you uploaded into your ImageKit Media Dashboard /portfolio folder.
     const myFolderImages = [
       "Photography - Sunset View.jpg",
       "Web Design - Portfolio Template.png",
@@ -66,18 +72,18 @@ const ImageKitGallery = () => {
         return;
       }
 
-      // Map file names directly to structured objects using public URL delivery rules
+      // Map files to verified array structures using CDN optimization rules
       const processedImages: ImageItem[] = myFolderImages.map(
         (fileName, idx) => {
           const { category, title } = parseFileName(fileName);
 
-          // Encode file names properly so spaces/special characters don't break the URLs
+          // Escape specialized string markers or spacing characters to maintain valid URLs
           const encodedFileName = encodeURIComponent(fileName);
 
           return {
             fileId: `img-${idx}`,
             name: fileName,
-            // Generate direct image delivery link optimized with real-time responsive resizing parameters
+            // Delivery layer optimized with real-time scaling and maintain-ratio processing constraints
             url: `${IMAGEKIT_BASE_URL}/${encodedFileName}?tr=w-800,h-600,c-maintain,q-85`,
             category,
             title,
