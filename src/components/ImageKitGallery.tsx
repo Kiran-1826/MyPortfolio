@@ -1,14 +1,11 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { AlertCircle, Loader2, X } from "lucide-react";
-import ImageKit from "imagekit-javascript"; // Import the client SDK
 import { cn } from "../lib/utils";
 
-// Initialize ImageKit with your Public URL Endpoint
-// (Safe to expose in frontend code because it only allows reading public media)
-const ikClient = new ImageKit({
-  urlEndpoint: "https://ik.imagekit.io/YOUR_IMAGEKIT_ID_HERE",
-});
+// 1. Put your actual ImageKit ID endpoint string here
+const IMAGEKIT_BASE_URL =
+  "https://ik.imagekit.io/YOUR_IMAGEKIT_ID_HERE/portfolio";
 
 interface ImageItem {
   fileId: string;
@@ -52,65 +49,56 @@ const ImageKitGallery = () => {
   };
 
   useEffect(() => {
-    const fetchPortfolioImages = async () => {
-      try {
-        setGalleryState((prev) => ({ ...prev, isLoading: true, error: null }));
+    // 2. Add the exact filenames of the images inside your ImageKit /portfolio folder here.
+    // Ensure they match your naming convention: "Category - Title.jpg"
+    const myFolderImages = [
+      "Photography - Sunset View.jpg",
+      "Web Design - Portfolio Template.png",
+      "Branding - Modern Logo.jpg",
+    ];
 
-        // Directly list files from the ImageKit folder using the frontend SDK
-        ikClient.listFiles(
-          {
-            path: "/portfolio",
-            limit: 50,
-          },
-          (err, result) => {
-            if (err) {
-              throw new Error(
-                err.message || "Failed to fetch images from ImageKit",
-              );
-            }
-
-            if (!result || result.length === 0) {
-              setGalleryState({
-                images: [],
-                isLoading: false,
-                error: "No images found in your ImageKit /portfolio folder.",
-              });
-              return;
-            }
-
-            // Transform the files array directly inside React
-            const processedImages: ImageItem[] = result.map(
-              (file: any, idx: number) => {
-                const { category, title } = parseFileName(file.name);
-                return {
-                  fileId: file.fileId || `img-${idx}`,
-                  name: file.name,
-                  // Automatically append real-time image resizing parameters
-                  url: `${file.url}?tr=w-800,h-600,c-maintain,q-85`,
-                  category,
-                  title,
-                };
-              },
-            );
-
-            setGalleryState({
-              images: processedImages,
-              isLoading: false,
-              error: null,
-            });
-          },
-        );
-      } catch (err: any) {
-        console.error("Portfolio fetch error:", err);
+    try {
+      if (myFolderImages.length === 0) {
         setGalleryState({
           images: [],
           isLoading: false,
-          error: err.message || "Failed to load portfolio images.",
+          error: "No images specified in the portfolio configuration.",
         });
+        return;
       }
-    };
 
-    fetchPortfolioImages();
+      // Map file names directly to structured objects using public URL delivery rules
+      const processedImages: ImageItem[] = myFolderImages.map(
+        (fileName, idx) => {
+          const { category, title } = parseFileName(fileName);
+
+          // Encode file names properly so spaces/special characters don't break the URLs
+          const encodedFileName = encodeURIComponent(fileName);
+
+          return {
+            fileId: `img-${idx}`,
+            name: fileName,
+            // Generate direct image delivery link optimized with real-time responsive resizing parameters
+            url: `${IMAGEKIT_BASE_URL}/${encodedFileName}?tr=w-800,h-600,c-maintain,q-85`,
+            category,
+            title,
+          };
+        },
+      );
+
+      setGalleryState({
+        images: processedImages,
+        isLoading: false,
+        error: null,
+      });
+    } catch (err: any) {
+      console.error("Portfolio processing error:", err);
+      setGalleryState({
+        images: [],
+        isLoading: false,
+        error: "Failed to load portfolio layout assets.",
+      });
+    }
   }, []);
 
   const categories = [
