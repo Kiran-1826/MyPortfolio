@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@theme {
+  --font-serif: "DM Serif Display", serif;
+  --font-sans: "Outfit", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  --color-brand-bg: var(--brand-bg);
+  --color-brand-text: var(--brand-text);
+  --color-brand-accent: var(--brand-accent);
+  --color-brand-muted: var(--brand-muted);
+  --color-brand-border: var(--brand-border);
+  
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-noise: noise 0.2s infinite;
+}
+
+@layer base {
+  :root {
+    --brand-bg: #FFE6A7;
+    --brand-text: #0a0908;
+    --brand-accent: #582f0e;
+    --brand-muted: rgba(10, 9, 8, 0.4);
+    --brand-border: rgba(10, 9, 8, 0.15);
+  }
+
+  .dark {
+    --brand-bg: #0a0908;
+    --brand-text: #FFFFFF;
+    --brand-accent: #FFF4D1;
+    --brand-muted: rgba(255, 244, 209, 0.6);
+    --brand-border: rgba(255, 244, 209, 0.2);
+  }
+
+  .light {
+    --brand-bg: #FFE6A7;
+    --brand-text: #0a0908;
+    --brand-accent: #582f0e;
+    --brand-muted: rgba(10, 9, 8, 0.4);
+    --brand-border: rgba(10, 9, 8, 0.15);
+  }
+
+  body {
+    @apply bg-brand-bg text-brand-text font-sans antialiased selection:bg-brand-accent selection:text-white transition-colors duration-500;
+    overflow-x: hidden;
+  }
+}
+
+@layer components {
+  .h-display {
+    @apply font-serif uppercase leading-[0.9] tracking-tighter;
+  }
+  
+  .h-section {
+    @apply font-mono text-[11px] uppercase tracking-[0.25em] text-brand-accent mb-6 block font-bold;
+  }
+
+  .retro-btn {
+    @apply px-8 py-5 rounded-2xl font-bold text-sm uppercase tracking-wider transition-all duration-300 shadow-[4px_4px_0px_0px_var(--brand-accent)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] active:scale-95 border border-brand-text/10;
+  }
+
+  .town-card {
+    @apply bg-white dark:bg-brand-muted/5 dark:backdrop-blur-md border border-black dark:border-brand-border rounded-[32px] p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,0.05)] hover:shadow-[12px_12px_0px_0px_rgba(0,0,0,0.1)] transition-all duration-500 font-sans;
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-20px); }
+}
+
+@keyframes noise {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-5%, -10%); }
+  20% { transform: translate(-15%, 5%); }
+  30% { transform: translate(7%, -25%); }
+  40% { transform: translate(-5%, 25%); }
+  50% { transform: translate(-15%, 10%); }
+  60% { transform: translate(15%, 0%); }
+  70% { transform: translate(0%, 15%); }
+  80% { transform: translate(3%, 35%); }
+  90% { transform: translate(-10%, 10%); }
+}
+
+.noise-overlay {
+  position: fixed;
+  top: -50%;
+  left: -50%;
+  right: -50%;
+  bottom: -50%;
+  width: 200%;
+  height: 200%;
+  background: transparent url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwAQMAAAB7S99XAAAAA1BMVEUAAACnej3aAAAAAXRSTlMAQObYZgAAAA1JREFUCNdjYBg8AAAAeAABf4onpQAAAABJRU5ErkJggg==') repeat;
+  opacity: 0.05;
+  z-index: 9999;
+  pointer-events: none;
+  animation: noise 0.2s infinite;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--brand-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--brand-text);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--brand-accent);
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
