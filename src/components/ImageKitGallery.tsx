@@ -1,15 +1,19 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { AlertCircle, Loader2, X } from "lucide-react";
 import { cn } from "../lib/utils";
 
-// 1. Configured with your live active ImageKit distribution endpoint
-const IMAGEKIT_BASE_URL = "https://ik.imagekit.io/uaog52xykd/portfolio";
+// ─── Cloudinary Config ────────────────────────────────────────────────────────
+// To fix 401: Cloudinary Dashboard → Settings → Security →
+// uncheck "Resource list" under Restricted image types → Save
+const CLOUD_NAME = "dwfd7ga1a";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface ImageItem {
   fileId: string;
   name: string;
   url: string;
+  thumbnailUrl: string;
   category: string;
   title: string;
 }
@@ -20,6 +24,71 @@ interface GalleryState {
   error: string | null;
 }
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+// Mirrors your original parseFileName logic exactly
+function parseFileName(publicId: string): { category: string; title: string } {
+  // Strip folder prefix if any (e.g. "portfolio/Branding - Title" → "Branding - Title")
+  const baseName = publicId.split("/").pop() ?? publicId;
+
+  if (baseName.includes(" - ")) {
+    const [category, ...titleParts] = baseName.split(" - ");
+    return {
+      category: category.trim(),
+      title: titleParts.join(" - ").trim(),
+    };
+  }
+
+  // Fallback: mirrors your original — title-cases the name, groups under "Project"
+  return {
+    category: "Project",
+    title: baseName
+      .replace(/[-_]/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase()),
+  };
+}
+
+// Cloudinary image URL with transformations matching your original ?tr=w-800,h-600,c-maintain,q-85
+function buildUrl(publicId: string, width = 800, height = 600): string {
+  return `https://res.cloudinary.com/${CLOUD_NAME}/image/upload/w_${width},h_${height},c_limit,q_85,f_auto/${publicId}`;
+}
+
+// Fetch all images tagged "portfolio" from Cloudinary
+async function fetchCloudinaryImages(): Promise<ImageItem[]> {
+  const res = await fetch(
+    `https://res.cloudinary.com/${CLOUD_NAME}/image/list/portfolio.json`,
+    { cache: "no-store" },
+  );
+
+  if (res.status === 401) {
+    throw new Error("401_RESTRICTED");
+  }
+  if (!res.ok) {
+    throw new Error(`Failed to fetch images (${res.status})`);
+  }
+
+  const data = await res.json();
+  const resources: Array<{
+    public_id: string;
+    format: string;
+    width: number;
+    height: number;
+  }> = data.resources ?? [];
+
+  return resources.map((r, idx) => {
+    const { category, title } = parseFileName(r.public_id);
+    return {
+      fileId: r.public_id || `img-${idx}`,
+      name: r.public_id,
+      url: buildUrl(r.public_id),
+      thumbnailUrl: buildUrl(r.public_id, 800, 600),
+      category,
+      title,
+    };
+  });
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 const ImageKitGallery = () => {
   const [galleryState, setGalleryState] = useState<GalleryState>({
     images: [],
@@ -30,89 +99,43 @@ const ImageKitGallery = () => {
   const [selectedImage, setSelectedImage] = useState<ImageItem | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>("All");
 
-  // ===== FILE NAME PARSING UTILITY WITH AUTO-FALLBACK =====
-  const parseFileName = (
-    fileName: string,
-  ): { category: string; title: string } => {
-    // Strip the extension format (e.g. ".jpg", ".png") cleanly from the trailing edge
-    const nameWithoutExt = fileName.replace(/\.[^/.]+$/, "");
-
-    // Check if the asset matches your clean structured "Category - Title" template
-    if (nameWithoutExt.includes(" - ")) {
-      const [category, ...titleParts] = nameWithoutExt.split(" - ");
-      return {
-        category: category.trim(),
-        title: titleParts.join(" - ").trim(),
-      };
+  const fetchImages = useCallback(async () => {
+    setGalleryState((s) => ({ ...s, isLoading: true, error: null }));
+    try {
+      const images = await fetchCloudinaryImages();
+      setGalleryState({ images, isLoading: false, error: null });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      const is401 = msg.includes("401_RESTRICTED");
+      console.error("[ImageKitGallery]", msg);
+      setGalleryState({
+        images: [],
+        isLoading: false,
+        error: is401
+          ? 'Gallery access restricted.\nFix: Cloudinary Dashboard → Settings → Security → uncheck "Resource list" → Save.'
+          : "Failed to load portfolio images.",
+      });
     }
-
-    // FALLBACK: Displays the raw filename as the title if unstructured, grouping it under "Project"
-    return {
-      category: "Project",
-      title: nameWithoutExt.trim(),
-    };
-  };
+  }, []);
 
   useEffect(() => {
-    const fetchImages = async () => {
-      try {
-        const response = await fetch("/api/gallery");
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch images");
-        }
-
-        const data = await response.json();
-
-        const processedImages: ImageItem[] = data.map(
-          (image: any, idx: number) => {
-            const nameWithoutExt = image.name.replace(/\.[^/.]+$/, "");
-
-            let category = "Project";
-            let title = nameWithoutExt;
-
-            // Structured format
-            if (nameWithoutExt.includes(" - ")) {
-              const [cat, ...rest] = nameWithoutExt.split(" - ");
-
-              if (cat && rest.length > 0) {
-                category = cat.trim();
-                title = rest.join(" - ").trim();
-              }
-            } else {
-              // Normal format
-              title = nameWithoutExt
-                .replace(/[-_]/g, " ")
-                .replace(/\b\w/g, (char: string) => char.toUpperCase());
-            }
-
-            return {
-              fileId: image.fileId || `img-${idx}`,
-              name: image.name,
-              url: `${image.url}?tr=w-800,h-600,c-maintain,q-85`,
-              category,
-              title,
-            };
-          },
-        );
-
-        setGalleryState({
-          images: processedImages,
-          isLoading: false,
-          error: null,
-        });
-      } catch (err) {
-        console.error(err);
-
-        setGalleryState({
-          images: [],
-          isLoading: false,
-          error: "Failed to load portfolio images.",
-        });
-      }
-    };
-
     fetchImages();
+  }, [fetchImages]);
+
+  // Auto-refresh when AdminUpload finishes
+  useEffect(() => {
+    const handler = () => fetchImages();
+    window.addEventListener("gallery:refresh", handler);
+    return () => window.removeEventListener("gallery:refresh", handler);
+  }, [fetchImages]);
+
+  // Close modal on Escape
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelectedImage(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   const categories = [
@@ -127,6 +150,7 @@ const ImageKitGallery = () => {
       ? galleryState.images
       : galleryState.images.filter((img) => img.category === activeCategory);
 
+  // ── Loading state — EXACTLY your original ─────────────────────────────────
   if (galleryState.isLoading) {
     return (
       <section id="portfolio" className="py-32 px-6">
@@ -140,6 +164,7 @@ const ImageKitGallery = () => {
     );
   }
 
+  // ── Error state — EXACTLY your original ───────────────────────────────────
   if (galleryState.error) {
     return (
       <section id="portfolio" className="py-32 px-6">
@@ -148,14 +173,24 @@ const ImageKitGallery = () => {
             size={48}
             className="text-brand-accent mb-4 opacity-60"
           />
-          <p className="text-brand-accent text-sm uppercase tracking-widest text-center mb-2">
+          <p
+            className="text-brand-accent text-sm uppercase tracking-widest text-center mb-2"
+            style={{ whiteSpace: "pre-line" }}
+          >
             {galleryState.error}
           </p>
+          <button
+            onClick={fetchImages}
+            className="mt-6 text-[10px] uppercase font-black tracking-[0.25em] text-brand-text/50 hover:text-brand-accent transition-colors"
+          >
+            Retry
+          </button>
         </div>
       </section>
     );
   }
 
+  // ── Main gallery — EXACTLY your original UI ───────────────────────────────
   return (
     <section id="portfolio" className="py-32 px-6">
       <div className="max-w-7xl mx-auto">
@@ -204,7 +239,7 @@ const ImageKitGallery = () => {
                 >
                   <div className="aspect-[4/3] overflow-hidden">
                     <img
-                      src={image.url}
+                      src={image.thumbnailUrl}
                       alt={image.title}
                       loading="lazy"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
@@ -230,7 +265,7 @@ const ImageKitGallery = () => {
         </div>
       </div>
 
-      {/* Lightbox Modal */}
+      {/* Lightbox Modal — EXACTLY your original */}
       <AnimatePresence>
         {selectedImage && (
           <motion.div
@@ -254,7 +289,7 @@ const ImageKitGallery = () => {
               className="flex flex-col items-center gap-4"
             >
               <img
-                src={selectedImage.url}
+                src={buildUrl(selectedImage.fileId, 1600, 1200)}
                 alt={selectedImage.title}
                 className="max-w-full max-h-[80vh] object-contain rounded-lg"
               />

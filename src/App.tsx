@@ -3,6 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { useState, useEffect } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { motion, useScroll, useSpring } from "motion/react";
+
 import LoadingScreen from "./components/LoadingScreen";
 import CustomCursor from "./components/CustomCursor";
 import Navbar from "./components/Navbar";
@@ -12,25 +16,22 @@ import Experience from "./components/Experience";
 import ImageKitGallery from "./components/ImageKitGallery";
 import SkillsTools from "./components/SkillsTools";
 import Contact from "./components/Contact";
-import { motion, useScroll, useSpring } from "motion/react";
-import { useState, useEffect } from "react";
+import AdminUpload from "./components/AdminUpload";
 
-export default function App() {
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+// ─── Main Portfolio Page (everything you already had) ────────────────────────
+function PortfolioPage({
+  theme,
+  toggleTheme,
+}: {
+  theme: "dark" | "light";
+  toggleTheme: () => void;
+}) {
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
     stiffness: 100,
     damping: 30,
     restDelta: 0.001,
   });
-
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
-  };
-
-  useEffect(() => {
-    document.documentElement.className = theme;
-  }, [theme]);
 
   return (
     <div className={`relative selection:bg-brand-accent/30 ${theme}`}>
@@ -88,5 +89,33 @@ export default function App() {
         </div>
       </footer>
     </div>
+  );
+}
+
+// ─── Root App with Router ─────────────────────────────────────────────────────
+export default function App() {
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  };
+
+  useEffect(() => {
+    document.documentElement.className = theme;
+  }, [theme]);
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* All existing portfolio routes */}
+        <Route
+          path="/*"
+          element={<PortfolioPage theme={theme} toggleTheme={toggleTheme} />}
+        />
+
+        {/* Admin upload — visit /admin directly, no nav link */}
+        <Route path="/admin" element={<AdminUpload />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
