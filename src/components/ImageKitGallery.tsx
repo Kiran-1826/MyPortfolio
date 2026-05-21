@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { AlertCircle, Loader2, X } from "lucide-react";
+import ImageKit from "imagekit-javascript"; // Import the client SDK
 import { cn } from "../lib/utils";
+
+// Initialize ImageKit with your Public URL Endpoint
+// (Safe to expose in frontend code because it only allows reading public media)
+const ikClient = new ImageKit({
+  urlEndpoint: "https://ik.imagekit.io/YOUR_IMAGEKIT_ID_HERE",
+});
 
 interface ImageItem {
   fileId: string;
@@ -27,14 +34,10 @@ const ImageKitGallery = () => {
   const [selectedImage, setSelectedImage] = useState<ImageItem | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>("All");
 
-  // ===== FILE NAME PARSING UTILITY =====
-  // Parses filenames using convention: "Category - Title.ext"
-  // Falls back gracefully if naming convention isn't followed
   const parseFileName = (
     fileName: string,
   ): { category: string; title: string } => {
     const nameWithoutExt = fileName.replace(/\.[^/.]+$/, "");
-
     if (nameWithoutExt.includes(" - ")) {
       const [category, ...titleParts] = nameWithoutExt.split(" - ");
       return {
@@ -42,77 +45,74 @@ const ImageKitGallery = () => {
         title: titleParts.join(" - ").trim(),
       };
     }
-
     return {
       category: "Gallery",
       title: nameWithoutExt.trim(),
     };
   };
 
-  // ===== DATA FETCHING FROM BACKEND =====
   useEffect(() => {
     const fetchPortfolioImages = async () => {
       try {
-        setGalleryState((prev) => ({
-          ...prev,
-          isLoading: true,
-          error: null,
-        }));
+        setGalleryState((prev) => ({ ...prev, isLoading: true, error: null }));
 
-        // Call backend endpoint to fetch ImageKit files
-        const response = await fetch("/api/imagekit/portfolio");
+        // Directly list files from the ImageKit folder using the frontend SDK
+        ikClient.listFiles(
+          {
+            path: "/portfolio",
+            limit: 50,
+          },
+          (err, result) => {
+            if (err) {
+              throw new Error(
+                err.message || "Failed to fetch images from ImageKit",
+              );
+            }
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(
-            errorData.error || "Failed to fetch portfolio images",
-          );
-        }
+            if (!result || result.length === 0) {
+              setGalleryState({
+                images: [],
+                isLoading: false,
+                error: "No images found in your ImageKit /portfolio folder.",
+              });
+              return;
+            }
 
-        const data = await response.json();
+            // Transform the files array directly inside React
+            const processedImages: ImageItem[] = result.map(
+              (file: any, idx: number) => {
+                const { category, title } = parseFileName(file.name);
+                return {
+                  fileId: file.fileId || `img-${idx}`,
+                  name: file.name,
+                  // Automatically append real-time image resizing parameters
+                  url: `${file.url}?tr=w-800,h-600,c-maintain,q-85`,
+                  category,
+                  title,
+                };
+              },
+            );
 
-        if (!data.images || data.images.length === 0) {
-          setGalleryState((prev) => ({
-            ...prev,
-            isLoading: false,
-            error: "No images found in portfolio folder.",
-          }));
-          return;
-        }
-
-        // Map files to enriched image items with parsed metadata
-        const processedImages: ImageItem[] = data.images.map(
-          (file: any, idx: number) => {
-            const { category, title } = parseFileName(file.name);
-            return {
-              fileId: file.fileId || `img-${idx}`,
-              name: file.name,
-              url: file.url,
-              category,
-              title,
-            };
+            setGalleryState({
+              images: processedImages,
+              isLoading: false,
+              error: null,
+            });
           },
         );
-
-        setGalleryState({
-          images: processedImages,
-          isLoading: false,
-          error: null,
-        });
       } catch (err: any) {
         console.error("Portfolio fetch error:", err);
-        setGalleryState((prev) => ({
-          ...prev,
+        setGalleryState({
+          images: [],
           isLoading: false,
           error: err.message || "Failed to load portfolio images.",
-        }));
+        });
       }
     };
 
     fetchPortfolioImages();
   }, []);
 
-  // ===== DERIVED DATA: UNIQUE CATEGORIES =====
   const categories = [
     "All",
     ...Array.from(
@@ -125,65 +125,45 @@ const ImageKitGallery = () => {
       ? galleryState.images
       : galleryState.images.filter((img) => img.category === activeCategory);
 
-  // ===== LOADING STATE UI =====
   if (galleryState.isLoading) {
     return (
       <section id="portfolio" className="py-32 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col items-center justify-center py-20">
-            <Loader2
-              size={48}
-              className="animate-spin text-brand-accent mb-4"
-            />
-            <p className="text-brand-text/60 text-sm uppercase tracking-widest">
-              Loading portfolio...
-            </p>
-          </div>
+        <div className="max-w-7xl mx-auto flex flex-col items-center justify-center py-20">
+          <Loader2 size={48} className="animate-spin text-brand-accent mb-4" />
+          <p className="text-brand-text/60 text-sm uppercase tracking-widest">
+            Loading portfolio...
+          </p>
         </div>
       </section>
     );
   }
 
-  // ===== ERROR STATE UI =====
   if (galleryState.error) {
     return (
       <section id="portfolio" className="py-32 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col items-center justify-center py-20">
-            <AlertCircle
-              size={48}
-              className="text-brand-accent mb-4 opacity-60"
-            />
-            <p className="text-brand-accent text-sm uppercase tracking-widest text-center mb-2">
-              {galleryState.error}
-            </p>
-            <p className="text-brand-text/40 text-xs uppercase tracking-wider text-center max-w-md">
-              Check that your IMAGEKIT_PRIVATE_KEY and IMAGEKIT_ID are set in
-              your .env file, and /portfolio folder exists.
-            </p>
-          </div>
+        <div className="max-w-7xl mx-auto flex flex-col items-center justify-center py-20">
+          <AlertCircle
+            size={48}
+            className="text-brand-accent mb-4 opacity-60"
+          />
+          <p className="text-brand-accent text-sm uppercase tracking-widest text-center mb-2">
+            {galleryState.error}
+          </p>
         </div>
       </section>
     );
   }
 
-  // ===== SUCCESS STATE UI =====
   return (
     <section id="portfolio" className="py-32 px-6">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-20">
-          <div className="flex flex-col gap-4">
-            <span className="h-section">04 / Selected Works</span>
-            <h2 className="text-5xl md:text-7xl font-serif">
-              Curated Portfolio
-            </h2>
-          </div>
+        <div className="mb-20 flex flex-col gap-4">
+          <span className="h-section">04 / Selected Works</span>
+          <h2 className="text-5xl md:text-7xl font-serif">Curated Portfolio</h2>
         </div>
 
-        {/* Category Filter Tabs */}
         {categories.length > 1 && (
-          <div className="flex flex-nowrap md:flex-wrap gap-8 md:gap-10 mb-12 border-b border-brand-text/10 pb-8 overflow-x-auto no-scrollbar scroll-smooth">
+          <div className="flex flex-nowrap md:flex-wrap gap-8 md:gap-10 mb-12 border-b border-brand-text/10 pb-8 overflow-x-auto no-scrollbar">
             {categories.map((category) => (
               <button
                 key={category}
@@ -191,7 +171,7 @@ const ImageKitGallery = () => {
                 className={cn(
                   "text-[10px] uppercase font-black tracking-[0.25em] transition-all duration-300 relative pb-2 whitespace-nowrap",
                   activeCategory === category
-                    ? "text-brand-accent after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-brand-accent"
+                    ? "text-brand-accent after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-brand-accent"
                     : "text-brand-text/30 hover:text-brand-text",
                 )}
               >
@@ -201,8 +181,7 @@ const ImageKitGallery = () => {
           </div>
         )}
 
-        {/* Image Grid */}
-        <div className="portfolio-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           <AnimatePresence mode="popLayout">
             {filteredImages.map((image, idx) => (
               <motion.div
@@ -217,37 +196,27 @@ const ImageKitGallery = () => {
               >
                 <div
                   className={cn(
-                    "portfolio-card p-0 overflow-hidden relative border border-brand-text/10 rounded-lg",
-                    idx % 2 === 0
-                      ? "bg-brand-accent/5 dark:bg-brand-accent/10"
-                      : "bg-brand-text/5",
+                    "overflow-hidden relative border border-brand-text/10 rounded-lg",
+                    idx % 2 === 0 ? "bg-brand-accent/5" : "bg-brand-text/5",
                   )}
                 >
-                  <div className="aspect-[4/3] overflow-hidden bg-brand-bg/30">
+                  <div className="aspect-[4/3] overflow-hidden">
                     <img
                       src={image.url}
                       alt={image.title}
                       loading="lazy"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src =
-                          "https://via.placeholder.com/800x600?text=Image+Error";
-                      }}
                     />
                   </div>
-
-                  {/* Card Footer */}
-                  <div className="p-6 flex flex-col gap-3 border-t border-brand-text/10 bg-brand-bg/50 backdrop-blur-sm">
-                    <div className="flex justify-between items-start">
-                      <span
-                        className={cn(
-                          "font-mono text-[9px] font-black uppercase tracking-[0.2em] px-2 py-0.5 border border-brand-text/10 rounded-sm text-brand-bg w-fit",
-                          idx % 2 === 0 ? "bg-brand-accent" : "bg-brand-text",
-                        )}
-                      >
-                        {image.category}
-                      </span>
-                    </div>
+                  <div className="p-6 flex flex-col gap-3 border-t border-brand-text/10">
+                    <span
+                      className={cn(
+                        "font-mono text-[9px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-sm text-brand-bg w-fit",
+                        idx % 2 === 0 ? "bg-brand-accent" : "bg-brand-text",
+                      )}
+                    >
+                      {image.category}
+                    </span>
                     <h3 className="text-lg md:text-xl font-serif tracking-tighter line-clamp-2">
                       {image.title}
                     </h3>
@@ -257,15 +226,6 @@ const ImageKitGallery = () => {
             ))}
           </AnimatePresence>
         </div>
-
-        {/* Empty State */}
-        {filteredImages.length === 0 && (
-          <div className="text-center py-20">
-            <p className="text-brand-text/40 uppercase tracking-widest text-sm">
-              No images found in this category
-            </p>
-          </div>
-        )}
       </div>
 
       {/* Lightbox Modal */}
@@ -275,11 +235,11 @@ const ImageKitGallery = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[10001] bg-black/95 flex items-center justify-center p-6 backdrop-blur-xl"
+            className="fixed inset-0 z-[10001] bg-black/95 flex items-center justify-center p-6"
             onClick={() => setSelectedImage(null)}
           >
             <button
-              className="absolute top-10 right-10 text-white hover:text-brand-accent transition-colors z-10"
+              className="absolute top-10 right-10 text-white"
               onClick={() => setSelectedImage(null)}
             >
               <X size={32} />
@@ -294,10 +254,10 @@ const ImageKitGallery = () => {
               <img
                 src={selectedImage.url}
                 alt={selectedImage.title}
-                className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl border border-white/10"
+                className="max-w-full max-h-[80vh] object-contain rounded-lg"
               />
               <div className="text-center">
-                <p className="text-white/60 text-xs uppercase tracking-widest mb-1">
+                <p className="text-white/60 text-xs uppercase tracking-widest">
                   {selectedImage.category}
                 </p>
                 <h3 className="text-white text-2xl font-serif">
