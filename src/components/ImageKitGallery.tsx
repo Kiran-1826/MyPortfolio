@@ -4,8 +4,7 @@ import { AlertCircle, Loader2, X } from "lucide-react";
 import { cn } from "../lib/utils";
 
 // 1. Put your actual ImageKit ID endpoint string here
-const IMAGEKIT_BASE_URL =
-  "https://ik.imagekit.io/YOUR_IMAGEKIT_ID_HERE/portfolio";
+const IMAGEKIT_BASE_URL = "https://ik.imagekit.io/uaog52xykd/portfolio";
 
 interface ImageItem {
   fileId: string;
