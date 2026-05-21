@@ -43,7 +43,7 @@ app.get("/api/imagekit/portfolio", async (req, res) => {
       },
     );
 
-    // Fixed mapping type definition from (file: any)
+    // Map files to verified object structural types
     const images = response.data.map(
       (file: { fileId: string; name: string; filePath: string }) => ({
         fileId: file.fileId,
@@ -66,36 +66,24 @@ app.get("/api/imagekit/portfolio", async (req, res) => {
   }
 });
 
-// ===== SERVING FRONTEND IN DEVELOPMENT vs PRODUCTION =====
-async function setupFrontend() {
-  if (process.env.NODE_ENV !== "production") {
+// ===== DEVELOPMENT FRONTEND INTERCEPT ONLY =====
+// Vercel completely bypasses local static file mapping via Express.
+// This block only spins up the Vite development proxy locally.
+if (process.env.NODE_ENV !== "production") {
+  async function setupDevFrontend() {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    // Wildcard fallback serves index.html safely for single page apps
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-  }
-}
 
-// Only listen locally during development; Vercel handles routing automatically in production
-if (process.env.NODE_ENV !== "production") {
-  setupFrontend().then(() => {
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
       console.log(`Server running locally on http://localhost:${PORT}`);
     });
-  });
-} else {
-  // Production initialization for serverless rendering paths
-  setupFrontend();
+  }
+  setupDevFrontend();
 }
 
-// CRITICAL FOR VERCEL: Export the app instance so Vercel can convert endpoints to serverless functions
+// CRITICAL FOR VERCEL: Export the application layer instance.
 export default app;
