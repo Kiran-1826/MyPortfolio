@@ -1,7 +1,15 @@
-import { Mail, Phone, Instagram, Linkedin, ArrowUpRight, Send } from "lucide-react";
+import { Mail, Phone, Send } from "lucide-react";
 import { cn } from "../lib/utils";
+import { useContact } from "../sanity/hooks";
 
 export default function Contact() {
+  const { data: contact } = useContact();
+  const socialLinks = [
+    { name: "LinkedIn", url: contact.linkedin },
+    { name: "Behance", url: contact.behance },
+    { name: "Dribbble", url: contact.dribbble },
+  ].filter((social): social is { name: string; url: string } => Boolean(social.url));
+
   return (
     <section id="contact" className="py-32 px-6">
       <div className="max-w-7xl mx-auto">
@@ -18,37 +26,33 @@ export default function Contact() {
             </div>
  
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-               <a href="mailto:bodemkiran098@gmail.com" className="town-card bg-brand-accent text-brand-bg group hover:opacity-90 border-none shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)]">
+               <a href={`mailto:${contact.email}`} className="town-card bg-brand-accent text-brand-bg group hover:opacity-90 border-none shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)]">
                   <div className="flex flex-col gap-4">
                      <div className="w-10 h-10 bg-brand-bg text-brand-accent border border-brand-accent/20 rounded-full flex items-center justify-center">
                         <Mail size={18} />
                      </div>
                      <div>
                        <span className="text-[10px] uppercase font-black tracking-widest opacity-60">Mailbox</span>
-                       <p className="text-sm font-black truncate">bodemkiran098@gmail.com</p>
+                       <p className="text-sm font-black truncate">{contact.email}</p>
                      </div>
                   </div>
                </a>
 
-               <a href="tel:+917032698038" className="town-card bg-brand-text text-brand-bg group hover:opacity-90 border-none shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)]">
+               <a href={`tel:${contact.phone.replace(/\s/g, "")}`} className="town-card bg-brand-text text-brand-bg group hover:opacity-90 border-none shadow-[8px_8px_0px_0px_rgba(0,0,0,0.1)]">
                   <div className="flex flex-col gap-4">
                      <div className="w-10 h-10 bg-brand-bg text-brand-text border border-brand-text/10 rounded-full flex items-center justify-center">
                         <Phone size={18} />
                      </div>
                      <div>
                        <span className="text-[10px] uppercase font-black tracking-widest opacity-60">Hotline</span>
-                       <p className="text-sm font-black">+91 7032698038</p>
+                       <p className="text-sm font-black">{contact.phone}</p>
                      </div>
                   </div>
                </a>
             </div>
 
             <div className="flex flex-wrap gap-3">
-               {[
-                 { name: "LinkedIn", url: "https://linkedin.com/in/bodem-divya-kiran" },
-                 { name: "Instagram", url: "https://instagram.com" },
-                 { name: "Behance", url: "https://behance.net" }
-               ].map((social, i) => (
+               {socialLinks.map((social, i) => (
                  <a 
                    key={social.name} 
                    href={social.url} 

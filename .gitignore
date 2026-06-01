@@ -1,6 +1,8 @@
 node_modules/
 build/
 dist/
+studio-dist/
+.sanity/
 coverage/
 .DS_Store
 *.log

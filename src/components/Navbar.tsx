@@ -32,7 +32,9 @@ export default function Navbar({ onThemeToggle, theme }: NavbarProps) {
     <nav
       className={cn(
         "fixed top-0 left-0 w-full z-50 transition-all duration-500 py-8",
-        scrolled ? "bg-brand-bg/95 backdrop-blur-sm py-4 border-b border-brand-border" : "bg-transparent border-b border-brand-border/0"
+        scrolled
+          ? "bg-brand-bg/95 backdrop-blur-sm py-4 border-b border-brand-border"
+          : "bg-transparent border-b border-brand-border/0",
       )}
     >
       <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
@@ -45,7 +47,7 @@ export default function Navbar({ onThemeToggle, theme }: NavbarProps) {
           >
             DK.
           </motion.a>
- 
+
           {/* Desktop Links */}
           <div className="hidden md:flex items-center gap-8">
             {NAV_LINKS.map((link, idx) => (
@@ -90,7 +92,9 @@ export default function Navbar({ onThemeToggle, theme }: NavbarProps) {
       {/* Mobile Menu */}
       <motion.div
         initial={false}
-        animate={isOpen ? { height: "auto", opacity: 1 } : { height: 0, opacity: 0 }}
+        animate={
+          isOpen ? { height: "auto", opacity: 1 } : { height: 0, opacity: 0 }
+        }
         className="md:hidden overflow-hidden bg-brand-bg border-b border-white/5"
       >
         <div className="px-6 py-10 flex flex-col gap-6">
