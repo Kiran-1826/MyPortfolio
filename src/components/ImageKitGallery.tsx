@@ -1,6 +1,13 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { AlertCircle, Loader2, RotateCcw, X, ZoomIn, ZoomOut } from "lucide-react";
+import {
+  AlertCircle,
+  Loader2,
+  RotateCcw,
+  X,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 import { cn } from "../lib/utils";
 import { usePortfolio } from "../sanity/hooks";
 import { optimizedImageUrl } from "../sanity/imageBuilder";
@@ -183,7 +190,7 @@ export default function ImageKitGallery() {
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full h-full flex flex-col"
+              className="w-full h-full min-h-0 flex flex-col"
             >
               <div className="absolute top-4 left-4 md:top-8 md:left-8 z-50 flex items-center gap-2">
                 <button
@@ -221,21 +228,23 @@ export default function ImageKitGallery() {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-auto overscroll-contain px-4 pb-4 pt-20 md:px-8 md:pt-24">
+              <div className="flex-1 min-h-0 overflow-auto overscroll-contain px-4 pb-4 pt-20 md:px-8 md:pt-24">
                 <div
                   className={cn(
                     "min-h-full min-w-full flex",
-                    modalZoom > 1 ? "items-start justify-start" : "items-center justify-center",
+                    modalZoom > 1
+                      ? "items-start justify-start"
+                      : "items-center justify-center",
                   )}
                 >
                   <img
                     src={optimizedImageUrl(selectedImage.image, 2400, 2400)}
                     alt={selectedImage.title}
-                    className="block h-auto max-w-none select-none"
+                    className="block h-auto w-auto object-contain select-none"
                     draggable={false}
                     style={{
-                      width: `${modalZoom * 100}%`,
-                      maxWidth: "none",
+                      maxWidth: `${modalZoom * 100}%`,
+                      maxHeight: `${modalZoom * 100}%`,
                     }}
                   />
                 </div>
