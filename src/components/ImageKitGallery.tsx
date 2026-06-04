@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { AlertCircle, Loader2, X } from "lucide-react";
+import { AlertCircle, Loader2, RotateCcw, X, ZoomIn, ZoomOut } from "lucide-react";
 import { cn } from "../lib/utils";
 import { usePortfolio } from "../sanity/hooks";
 import { optimizedImageUrl } from "../sanity/imageBuilder";
 import type { PortfolioDocument } from "../sanity/types";
-import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
 const categories = [
   "All",
@@ -25,6 +24,7 @@ export default function ImageKitGallery() {
     null,
   );
   const [activeCategory, setActiveCategory] = useState("All");
+  const [modalZoom, setModalZoom] = useState(1);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -34,10 +34,18 @@ export default function ImageKitGallery() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  useEffect(() => {
+    if (selectedImage) setModalZoom(1);
+  }, [selectedImage]);
+
   const filteredImages =
     activeCategory === "All"
       ? images
       : images.filter((image) => image.category === activeCategory);
+
+  const zoomIn = () => setModalZoom((zoom) => Math.min(zoom + 0.25, 4));
+  const zoomOut = () => setModalZoom((zoom) => Math.max(zoom - 0.25, 0.5));
+  const resetZoom = () => setModalZoom(1);
 
   if (isLoading) {
     return (
@@ -160,10 +168,14 @@ export default function ImageKitGallery() {
             onClick={() => setSelectedImage(null)}
           >
             <button
-              className="absolute top-8 right-8 z-50 text-white"
-              onClick={() => setSelectedImage(null)}
+              className="absolute top-4 right-4 md:top-8 md:right-8 z-50 text-white bg-white/10 hover:bg-white/20 border border-white/15 rounded-full size-11 flex items-center justify-center transition-colors"
+              onClick={(event) => {
+                event.stopPropagation();
+                setSelectedImage(null);
+              }}
+              aria-label="Close image modal"
             >
-              <X size={32} />
+              <X size={24} />
             </button>
 
             <motion.div
@@ -173,59 +185,63 @@ export default function ImageKitGallery() {
               onClick={(e) => e.stopPropagation()}
               className="w-full h-full flex flex-col"
             >
-              <div className="flex-1 overflow-hidden">
-                <TransformWrapper
-                  initialScale={1}
-                  minScale={0.5}
-                  maxScale={5}
-                  wheel={{ step: 0.15 }}
-                  doubleClick={{ disabled: false }}
+              <div className="absolute top-4 left-4 md:top-8 md:left-8 z-50 flex items-center gap-2">
+                <button
+                  onClick={zoomOut}
+                  className="bg-white/10 hover:bg-white/20 text-white border border-white/15 rounded-full size-11 flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled={modalZoom <= 0.5}
+                  aria-label="Zoom out"
+                  title="Zoom out"
                 >
-                  {({ zoomIn, zoomOut, resetTransform }) => (
-                    <>
-                      <div className="absolute top-8 left-8 z-50 flex gap-2">
-                        <button
-                          onClick={() => zoomIn()}
-                          className="bg-white/10 text-white px-4 py-2 rounded"
-                        >
-                          +
-                        </button>
+                  <ZoomOut size={20} />
+                </button>
 
-                        <button
-                          onClick={() => zoomOut()}
-                          className="bg-white/10 text-white px-4 py-2 rounded"
-                        >
-                          -
-                        </button>
+                <span className="min-w-14 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-center font-mono text-[10px] font-black text-white">
+                  {Math.round(modalZoom * 100)}%
+                </span>
 
-                        <button
-                          onClick={() => resetTransform()}
-                          className="bg-white/10 text-white px-4 py-2 rounded"
-                        >
-                          Reset
-                        </button>
-                      </div>
+                <button
+                  onClick={zoomIn}
+                  className="bg-white/10 hover:bg-white/20 text-white border border-white/15 rounded-full size-11 flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled={modalZoom >= 4}
+                  aria-label="Zoom in"
+                  title="Zoom in"
+                >
+                  <ZoomIn size={20} />
+                </button>
 
-                      <TransformComponent
-                        wrapperClass="!w-full !h-full"
-                        contentClass="flex items-center justify-center min-h-full"
-                      >
-                        <img
-                          src={optimizedImageUrl(
-                            selectedImage.image,
-                            2000,
-                            2000,
-                          )}
-                          alt={selectedImage.title}
-                          className="max-w-none"
-                        />
-                      </TransformComponent>
-                    </>
-                  )}
-                </TransformWrapper>
+                <button
+                  onClick={resetZoom}
+                  className="bg-white/10 hover:bg-white/20 text-white border border-white/15 rounded-full size-11 flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled={modalZoom === 1}
+                  aria-label="Reset zoom"
+                  title="Reset zoom"
+                >
+                  <RotateCcw size={18} />
+                </button>
               </div>
 
-              <div className="text-center py-6">
+              <div className="flex-1 overflow-auto overscroll-contain px-4 pb-4 pt-20 md:px-8 md:pt-24">
+                <div
+                  className={cn(
+                    "min-h-full min-w-full flex",
+                    modalZoom > 1 ? "items-start justify-start" : "items-center justify-center",
+                  )}
+                >
+                  <img
+                    src={optimizedImageUrl(selectedImage.image, 2400, 2400)}
+                    alt={selectedImage.title}
+                    className="block h-auto max-w-none select-none"
+                    draggable={false}
+                    style={{
+                      width: `${modalZoom * 100}%`,
+                      maxWidth: "none",
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div className="shrink-0 text-center px-6 py-5 border-t border-white/10 bg-black/40">
                 <p className="text-white/60 text-xs uppercase tracking-widest">
                   {selectedImage.category}
                 </p>
