@@ -5,6 +5,10 @@ import { cn } from "../lib/utils";
 import { usePortfolio } from "../sanity/hooks";
 import { optimizedImageUrl } from "../sanity/imageBuilder";
 import type { PortfolioDocument } from "../sanity/types";
+import {
+  TransformWrapper,
+  TransformComponent,
+} from "react-zoom-pan-pinch";
 
 const categories = [
   "All",
@@ -71,11 +75,88 @@ export default function ImageKitGallery() {
       </div>
       <AnimatePresence>
         {selectedImage && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[10001] bg-black/95 flex items-center justify-center p-6" onClick={() => setSelectedImage(null)}>
-            <button className="absolute top-10 right-10 text-white" onClick={() => setSelectedImage(null)}><X size={32} /></button>
-            <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }} exit={{ scale: 0.8 }} onClick={(event) => event.stopPropagation()} className="flex flex-col items-center gap-4">
-              <img src={optimizedImageUrl(selectedImage.image, 1600, 1200)} alt={selectedImage.title} className="max-w-full max-h-[80vh] object-contain rounded-lg" />
-              <div className="text-center"><p className="text-white/60 text-xs uppercase tracking-widest">{selectedImage.category}</p><h3 className="text-white text-2xl font-serif">{selectedImage.title}</h3></div>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[10001] bg-black/95"
+            onClick={() => setSelectedImage(null)}
+          >
+            <button
+              className="absolute top-8 right-8 z-50 text-white"
+              onClick={() => setSelectedImage(null)}
+            >
+              <X size={32} />
+            </button>
+      
+            <motion.div
+              initial={{ scale: 0.9 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.9 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full h-full flex flex-col"
+            >
+              <div className="flex-1 overflow-hidden">
+                <TransformWrapper
+                  initialScale={1}
+                  minScale={0.5}
+                  maxScale={5}
+                  wheel={{ step: 0.15 }}
+                  doubleClick={{ disabled: false }}
+                >
+                  {({ zoomIn, zoomOut, resetTransform }) => (
+                    <>
+                      <div className="absolute top-8 left-8 z-50 flex gap-2">
+                        <button
+                          onClick={zoomIn}
+                          className="bg-white text-black px-3 py-2 rounded"
+                        >
+                          +
+                        </button>
+      
+                        <button
+                          onClick={zoomOut}
+                          className="bg-white text-black px-3 py-2 rounded"
+                        >
+                          -
+                        </button>
+      
+                        <button
+                          onClick={resetTransform}
+                          className="bg-white text-black px-3 py-2 rounded"
+                        >
+                          Reset
+                        </button>
+                      </div>
+      
+                      <TransformComponent
+                        wrapperClass="!w-full !h-full"
+                        contentClass="flex items-center justify-center min-h-full"
+                      >
+                        <img
+                          src={optimizedImageUrl(
+                            selectedImage.image,
+                            2000,
+                            2000
+                          )}
+                          alt={selectedImage.title}
+                          className="max-w-none"
+                        />
+                      </TransformComponent>
+                    </>
+                  )}
+                </TransformWrapper>
+              </div>
+      
+              <div className="text-center py-6">
+                <p className="text-white/60 text-xs uppercase tracking-widest">
+                  {selectedImage.category}
+                </p>
+      
+                <h3 className="text-white text-2xl font-serif">
+                  {selectedImage.title}
+                </h3>
+              </div>
             </motion.div>
           </motion.div>
         )}
