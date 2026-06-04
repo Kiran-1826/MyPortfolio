@@ -171,64 +171,63 @@ export default function ImageKitGallery() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[10001] bg-black/95"
+            className="fixed inset-0 z-[10001] bg-black/95 p-3 md:p-6"
             onClick={() => setSelectedImage(null)}
           >
-            <button
-              className="absolute top-4 right-4 md:top-8 md:right-8 z-50 text-white bg-white/10 hover:bg-white/20 border border-white/15 rounded-full size-11 flex items-center justify-center transition-colors"
-              onClick={(event) => {
-                event.stopPropagation();
-                setSelectedImage(null);
-              }}
-              aria-label="Close image modal"
-            >
-              <X size={24} />
-            </button>
-
             <motion.div
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full h-full min-h-0 flex flex-col"
+              className="w-full h-full min-h-0 flex flex-col overflow-hidden"
             >
-              <div className="absolute top-4 left-4 md:top-8 md:left-8 z-50 flex items-center gap-2">
-                <button
-                  onClick={zoomOut}
-                  className="bg-white/10 hover:bg-white/20 text-white border border-white/15 rounded-full size-11 flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  disabled={modalZoom <= 0.5}
-                  aria-label="Zoom out"
-                  title="Zoom out"
-                >
-                  <ZoomOut size={20} />
-                </button>
+              <div className="shrink-0 flex items-center justify-between gap-3 pb-3">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={zoomOut}
+                    className="bg-white/10 hover:bg-white/20 text-white border border-white/15 rounded-full size-11 flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={modalZoom <= 0.5}
+                    aria-label="Zoom out"
+                    title="Zoom out"
+                  >
+                    <ZoomOut size={20} />
+                  </button>
 
-                <span className="min-w-14 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-center font-mono text-[10px] font-black text-white">
-                  {Math.round(modalZoom * 100)}%
-                </span>
+                  <span className="min-w-14 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-center font-mono text-[10px] font-black text-white">
+                    {Math.round(modalZoom * 100)}%
+                  </span>
+
+                  <button
+                    onClick={zoomIn}
+                    className="bg-white/10 hover:bg-white/20 text-white border border-white/15 rounded-full size-11 flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={modalZoom >= 4}
+                    aria-label="Zoom in"
+                    title="Zoom in"
+                  >
+                    <ZoomIn size={20} />
+                  </button>
+
+                  <button
+                    onClick={resetZoom}
+                    className="bg-white/10 hover:bg-white/20 text-white border border-white/15 rounded-full size-11 flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    disabled={modalZoom === 1}
+                    aria-label="Reset zoom"
+                    title="Reset zoom"
+                  >
+                    <RotateCcw size={18} />
+                  </button>
+                </div>
 
                 <button
-                  onClick={zoomIn}
-                  className="bg-white/10 hover:bg-white/20 text-white border border-white/15 rounded-full size-11 flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  disabled={modalZoom >= 4}
-                  aria-label="Zoom in"
-                  title="Zoom in"
+                  className="text-white bg-white/10 hover:bg-white/20 border border-white/15 rounded-full size-11 flex items-center justify-center transition-colors"
+                  onClick={() => setSelectedImage(null)}
+                  aria-label="Close image modal"
                 >
-                  <ZoomIn size={20} />
-                </button>
-
-                <button
-                  onClick={resetZoom}
-                  className="bg-white/10 hover:bg-white/20 text-white border border-white/15 rounded-full size-11 flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  disabled={modalZoom === 1}
-                  aria-label="Reset zoom"
-                  title="Reset zoom"
-                >
-                  <RotateCcw size={18} />
+                  <X size={24} />
                 </button>
               </div>
 
-              <div className="flex-1 min-h-0 overflow-auto overscroll-contain px-4 pb-4 pt-20 md:px-8 md:pt-24">
+              <div className="flex-1 min-h-0 overflow-auto overscroll-contain rounded-lg border border-white/10 bg-black/30 p-3 md:p-4">
                 <div
                   className={cn(
                     "min-h-full min-w-full flex",
@@ -242,15 +241,20 @@ export default function ImageKitGallery() {
                     alt={selectedImage.title}
                     className="block h-auto w-auto object-contain select-none"
                     draggable={false}
-                    style={{
-                      maxWidth: `${modalZoom * 100}%`,
-                      maxHeight: `${modalZoom * 100}%`,
-                    }}
+                    style={
+                      modalZoom === 1
+                        ? { maxWidth: "100%", maxHeight: "100%" }
+                        : {
+                            width: `${modalZoom * 100}%`,
+                            maxWidth: "none",
+                            maxHeight: "none",
+                          }
+                    }
                   />
                 </div>
               </div>
 
-              <div className="shrink-0 text-center px-6 py-5 border-t border-white/10 bg-black/40">
+              <div className="shrink-0 text-center px-6 pt-4">
                 <p className="text-white/60 text-xs uppercase tracking-widest">
                   {selectedImage.category}
                 </p>
