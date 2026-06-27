@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   AlertCircle,
@@ -25,6 +25,58 @@ const categories = [
   "Marketing Creatives",
 ];
 
+/**
+ * WebsiteImageZoom
+ * Renders a tall webpage screenshot inside a scrollable panel with proper zoom.
+ *
+ * Strategy:
+ *  - Measure the panel's width via a ResizeObserver.
+ *  - Set the wrapper div's width to (panelWidth * zoom) px — this is a real
+ *    layout dimension so the scroll container sees the correct scrollable area.
+ *  - The <img> fills 100% of that wrapper and keeps its natural aspect ratio.
+ *  - At zoom=1 the image fills the panel exactly; at zoom=2 it doubles, etc.
+ */
+function WebsiteImageZoom({
+  src,
+  alt,
+  zoom,
+}: {
+  src: string;
+  alt: string;
+  zoom: number;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [panelWidth, setPanelWidth] = useState(0);
+
+  useEffect(() => {
+    const el = panelRef.current;
+    if (!el) return;
+    // Measure the scrollable panel (the parent of this component)
+    const parent = el.closest(".website-scroll-panel") as HTMLElement | null;
+    const target = parent ?? el;
+    const ro = new ResizeObserver(([entry]) => {
+      setPanelWidth(entry.contentRect.width);
+    });
+    ro.observe(target);
+    setPanelWidth(target.clientWidth);
+    return () => ro.disconnect();
+  }, []);
+
+  const pxWidth = panelWidth > 0 ? panelWidth * zoom : undefined;
+
+  return (
+    <div ref={panelRef} style={{ width: pxWidth, minWidth: "100%" }}>
+      <img
+        src={src}
+        alt={alt}
+        draggable={false}
+        className="block w-full h-auto select-none"
+        style={{ display: "block", verticalAlign: "top" }}
+      />
+    </div>
+  );
+}
+
 export default function ImageKitGallery() {
   const { data: images, isLoading, error, refresh } = usePortfolio();
   const [selectedImage, setSelectedImage] = useState<PortfolioDocument | null>(
@@ -32,6 +84,7 @@ export default function ImageKitGallery() {
   );
   const [activeCategory, setActiveCategory] = useState("All");
   const [modalZoom, setModalZoom] = useState(1);
+  const isWebsiteDesign = selectedImage?.category === "Website Design";
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -42,7 +95,9 @@ export default function ImageKitGallery() {
   }, []);
 
   useEffect(() => {
-    if (selectedImage) setModalZoom(1);
+    if (selectedImage) {
+      setModalZoom(1);
+    }
   }, [selectedImage]);
 
   const filteredImages =
@@ -50,8 +105,8 @@ export default function ImageKitGallery() {
       ? images
       : images.filter((image) => image.category === activeCategory);
 
-  const zoomIn = () => setModalZoom((zoom) => Math.min(zoom + 0.25, 4));
-  const zoomOut = () => setModalZoom((zoom) => Math.max(zoom - 0.25, 0.5));
+  const zoomIn = () => setModalZoom((z) => Math.min(z + 0.25, 5));
+  const zoomOut = () => setModalZoom((z) => Math.max(z - 0.25, 1));
   const resetZoom = () => setModalZoom(1);
 
   if (isLoading) {
@@ -96,6 +151,8 @@ export default function ImageKitGallery() {
           <span className="h-section">04 / Selected Works</span>
           <h2 className="text-5xl md:text-7xl font-serif">Curated Portfolio</h2>
         </div>
+
+        {/* Category filter */}
         <div className="flex flex-nowrap md:flex-wrap gap-8 md:gap-10 mb-12 border-b border-brand-text/10 pb-8 overflow-x-auto no-scrollbar">
           {categories.map((category) => (
             <button
@@ -112,11 +169,14 @@ export default function ImageKitGallery() {
             </button>
           ))}
         </div>
+
         {filteredImages.length === 0 && (
           <p className="py-12 text-center text-brand-text/50 text-sm uppercase tracking-widest">
             Portfolio items will appear here after they are published in Sanity.
           </p>
         )}
+
+        {/* Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           <AnimatePresence mode="popLayout">
             {filteredImages.map((image, index) => (
@@ -157,6 +217,11 @@ export default function ImageKitGallery() {
                     <h3 className="text-lg md:text-xl font-serif tracking-tighter line-clamp-2">
                       {image.title}
                     </h3>
+                    {image.description && (
+                      <p className="text-brand-text/50 text-xs leading-relaxed line-clamp-2">
+                        {image.description}
+                      </p>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -165,28 +230,31 @@ export default function ImageKitGallery() {
         </div>
       </div>
 
+      {/* Modal */}
       <AnimatePresence>
         {selectedImage && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[10001] bg-black/95 p-3 md:p-6"
+            className="fixed inset-0 z-[10001] bg-black/95 p-3 md:p-6 flex flex-col"
             onClick={() => setSelectedImage(null)}
           >
             <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.2 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full h-full min-h-0 flex flex-col overflow-hidden"
+              className="w-full h-full flex flex-col"
             >
+              {/* Top bar: zoom controls + close */}
               <div className="shrink-0 flex items-center justify-between gap-3 pb-3">
                 <div className="flex items-center gap-2">
                   <button
                     onClick={zoomOut}
                     className="bg-white/10 hover:bg-white/20 text-white border border-white/15 rounded-full size-11 flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    disabled={modalZoom <= 0.5}
+                    disabled={modalZoom <= 1}
                     aria-label="Zoom out"
                     title="Zoom out"
                   >
@@ -200,7 +268,7 @@ export default function ImageKitGallery() {
                   <button
                     onClick={zoomIn}
                     className="bg-white/10 hover:bg-white/20 text-white border border-white/15 rounded-full size-11 flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    disabled={modalZoom >= 4}
+                    disabled={modalZoom >= 5}
                     aria-label="Zoom in"
                     title="Zoom in"
                   >
@@ -227,42 +295,94 @@ export default function ImageKitGallery() {
                 </button>
               </div>
 
-              <div className="flex-1 min-h-0 overflow-auto overscroll-contain rounded-lg border border-white/10 bg-black/30 p-3 md:p-4">
+              {/* Main content: image left, description right */}
+              <div className="flex-1 flex flex-col md:flex-row gap-4 min-h-0">
+                {/* Image panel — 60% width */}
                 <div
                   className={cn(
-                    "min-h-full min-w-full flex",
-                    modalZoom > 1
-                      ? "items-start justify-start"
-                      : "items-center justify-center",
+                    "website-scroll-panel rounded-lg border border-white/10 bg-black/30 flex-1 md:w-[60%] md:flex-none overflow-auto overscroll-contain",
+                    !isWebsiteDesign && "flex items-center justify-center",
                   )}
                 >
-                  <img
-                    src={optimizedImageUrl(selectedImage.image, 2400, 2400)}
-                    alt={selectedImage.title}
-                    className="block h-auto w-auto object-contain select-none"
-                    draggable={false}
-                    style={
-                      modalZoom === 1
-                        ? { maxWidth: "100%", maxHeight: "100%" }
-                        : {
-                            width: `${modalZoom * 100}%`,
-                            maxWidth: "none",
-                            maxHeight: "none",
-                          }
-                    }
-                  />
+                  {isWebsiteDesign ? (
+                    /*
+                     * Website design: use a sized wrapper so the scroll container
+                     * knows the true dimensions at every zoom level.
+                     * The img is 100% of the wrapper; the wrapper width is
+                     * zoom * 100% of the panel — giving real layout-based zoom.
+                     * overflow-auto on the outer panel handles both axes.
+                     */
+                    <WebsiteImageZoom
+                      src={optimizedImageUrl(selectedImage.image, 2400, 9999)}
+                      alt={selectedImage.title}
+                      zoom={modalZoom}
+                    />
+                  ) : (
+                    /* All other images: centered, contained, transform-scale zoom */
+                    <img
+                      src={optimizedImageUrl(selectedImage.image, 2400, 2400)}
+                      alt={selectedImage.title}
+                      draggable={false}
+                      className="block object-contain select-none transition-transform duration-200"
+                      style={{
+                        transform: `scale(${modalZoom})`,
+                        transformOrigin: "center center",
+                        maxWidth: "100%",
+                        maxHeight: "calc(100vh - 180px)",
+                        width: "auto",
+                        height: "auto",
+                      }}
+                    />
+                  )}
                 </div>
+
+                {/* Description panel — only rendered when description exists */}
+                {selectedImage.description && (
+                  <div className="shrink-0 md:w-[40%] rounded-lg border border-white/10 bg-white/5 p-6 flex flex-col gap-5 overflow-y-auto">
+                    {/* Category badge */}
+                    <span className="font-mono text-[9px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-sm bg-brand-accent text-brand-bg w-fit">
+                      {selectedImage.category}
+                    </span>
+
+                    {/* Title */}
+                    <h3 className="text-white text-2xl font-serif leading-tight tracking-tight">
+                      {selectedImage.title}
+                    </h3>
+
+                    {/* Divider */}
+                    <div className="h-px bg-white/10 w-full" />
+
+                    {/* Description */}
+                    <p className="text-white/60 text-sm leading-relaxed">
+                      {selectedImage.description}
+                    </p>
+                  </div>
+                )}
+
+                {/* If no description, show title/category below on all screens */}
+                {!selectedImage.description && (
+                  <div className="shrink-0 md:hidden text-center px-6 pt-2">
+                    <p className="text-white/60 text-xs uppercase tracking-widest">
+                      {selectedImage.category}
+                    </p>
+                    <h3 className="text-white text-2xl font-serif">
+                      {selectedImage.title}
+                    </h3>
+                  </div>
+                )}
               </div>
 
-              <div className="shrink-0 text-center px-6 pt-4">
-                <p className="text-white/60 text-xs uppercase tracking-widest">
-                  {selectedImage.category}
-                </p>
-
-                <h3 className="text-white text-2xl font-serif">
-                  {selectedImage.title}
-                </h3>
-              </div>
+              {/* Bottom title bar — only shown on desktop when no description panel */}
+              {!selectedImage.description && (
+                <div className="hidden md:block shrink-0 text-center px-6 pt-4">
+                  <p className="text-white/60 text-xs uppercase tracking-widest">
+                    {selectedImage.category}
+                  </p>
+                  <h3 className="text-white text-2xl font-serif">
+                    {selectedImage.title}
+                  </h3>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
