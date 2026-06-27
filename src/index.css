@@ -18,9 +18,9 @@
 
 @layer base {
   :root {
-    --brand-bg: #ffe6a7;
+    --brand-bg: #f1faee;
     --brand-text: #0a0908;
-    --brand-accent: #582f0e;
+    --brand-accent: #457b9d;
     --brand-muted: rgba(10, 9, 8, 0.4);
     --brand-border: rgba(10, 9, 8, 0.15);
   }
@@ -34,9 +34,9 @@
   }
 
   .light {
-    --brand-bg: #ffe6a7;
+    --brand-bg: #f1faee;
     --brand-text: #0a0908;
-    --brand-accent: #582f0e;
+    --brand-accent: #457b9d;
     --brand-muted: rgba(10, 9, 8, 0.4);
     --brand-border: rgba(10, 9, 8, 0.15);
   }
