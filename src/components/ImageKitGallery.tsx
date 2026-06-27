@@ -320,13 +320,18 @@ export default function ImageKitGallery() {
 
               {/* DESKTOP (md+): side-by-side, image 60 / desc 40 */}
               <div className="hidden md:flex flex-1 gap-4 min-h-0">
-                {/* Image panel */}
+                {/*
+                 * Image panel
+                 * Website design: fills the full remaining height (100vh minus
+                 * top bar) so the full-length screenshot is visible & scrollable.
+                 * Other images: same height, image centred & contained inside.
+                 */}
                 <div
                   className={cn(
-                    "website-scroll-panel rounded-lg border border-white/10 bg-black/30 w-[60%] shrink-0 overflow-auto overscroll-contain",
+                    "website-scroll-panel rounded-lg border border-white/10 bg-black/30 w-[60%] shrink-0 overflow-auto",
                     !isWebsiteDesign && "flex items-center justify-center",
                   )}
-                  style={{ overscrollBehavior: "contain" }}
+                  style={{ overscrollBehavior: "contain", height: "100%" }}
                 >
                   {isWebsiteDesign ? (
                     <WebsiteImageZoom
@@ -352,7 +357,7 @@ export default function ImageKitGallery() {
                   )}
                 </div>
 
-                {/* Description panel */}
+                {/* Description panel — scrolls independently */}
                 {selectedImage.description ? (
                   <div
                     className="flex-1 rounded-lg border border-white/10 bg-white/5 p-6 flex flex-col gap-5 overflow-y-auto"
@@ -381,17 +386,22 @@ export default function ImageKitGallery() {
                 )}
               </div>
 
-              {/* MOBILE: image on top (fixed height), description below with read more */}
+              {/* MOBILE: image on top, description below with Read more toggle */}
               <div
                 className="flex md:hidden flex-col flex-1 gap-3 min-h-0 overflow-y-auto"
                 style={{ overscrollBehavior: "contain" }}
               >
-                {/* Image — fixed height so it's always visible */}
+                {/*
+                 * Image panel
+                 * Website design → tall (60vh) so it feels like a real page preview
+                 *                  and the user can scroll inside it.
+                 * Other images   → 56vw fixed height, image centred inside.
+                 */}
                 <div
                   className={cn(
                     "website-scroll-panel-mobile rounded-lg border border-white/10 bg-black/30 shrink-0 overflow-auto",
                     isWebsiteDesign
-                      ? "h-[52vw]"
+                      ? "h-[60vh]"
                       : "h-[56vw] flex items-center justify-center",
                   )}
                   style={{ overscrollBehavior: "contain" }}
@@ -420,7 +430,7 @@ export default function ImageKitGallery() {
                   )}
                 </div>
 
-                {/* Info + description */}
+                {/* Info + collapsible description */}
                 <div className="shrink-0 rounded-lg border border-white/10 bg-white/5 p-4 flex flex-col gap-3">
                   <span className="font-mono text-[9px] font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-sm bg-brand-accent text-brand-bg w-fit">
                     {selectedImage.category}
@@ -434,7 +444,7 @@ export default function ImageKitGallery() {
                       <div className="h-px bg-white/10 w-full" />
                       <p
                         className={cn(
-                          "text-white/60 text-sm leading-relaxed transition-all",
+                          "text-white/60 text-sm leading-relaxed",
                           !descExpanded && "line-clamp-3",
                         )}
                       >
